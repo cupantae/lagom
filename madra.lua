@@ -1,12 +1,9 @@
 ----[[   madra library   ]]--
 --
 ---> definitions and functions to be called from e.g. lagon
+dofile("madra.def")
 
 --[[ something about tables & packages..? ]]--
-
-  --[[  DEFINITIONS, FILES, CHOICES  ]]--
-BINfind = "/usr/bin/find"
-
 
       --[[  ACTIONS AND TOKENS  ]]--
 action = {}
@@ -72,6 +69,29 @@ function gathertostring (object)
     return rstring
 end
 
+ --[[ Find out the hostname of the computer ]]--
+function gethostname()
+    hnfile = io.open("/etc/hostname", "r")
+    if hnfile ~= nil then
+        hostname = tostring ( hnfile:read() )
+        if hostname ~= nil and hostname ~= "" then
+            return hostname
+        end
+  --[[  else
+            tmpstring = os.tmpfile()
+            tmpf = io.open(tmpf, "w")
+            io.output =  tmpf
+            os.execute("hostname")
+            hostname = tostring ( tmpf:read() )
+            if hostname ~= nil and hostname ~= "" then
+                return hostname
+            end
+        end ]]
+    end
+end
+
+
+
   --[[  MISCELLANEOUS TEST FUNCTIONS  ]]--
 function halp (object)
     typeo = type(object)
@@ -89,4 +109,11 @@ function halp (object)
     else print(object)
     end
 end
+
+               ----------
+            --[[  MAIN  ]]--
+               ----------
+
+  --[[  DEFINITIONS, FILES, CHOICES  ]]--
+HOSTNAME = gethostname()
 
