@@ -41,11 +41,11 @@ token["/"] = action.find
 
  --[[ Split a string into a table of its words ]]--
 function strsplit (string)
-	stringlist = {}
-	for word in string:gmatch ( "%S+" ) do  -- = length-1-or-more strings of non-space
-		stringlist:insert (word)
-	end
-	return stringlist
+    stringlist = {}
+    for word in string:gmatch ( "%S+" ) do  -- = length-1-or-more strings of non-space
+            stringlist:insert (word)
+    end
+    return stringlist
 end
 
  --[[ Gather all elements of a table, in order, into a string ]]--

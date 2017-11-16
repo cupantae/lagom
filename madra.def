@@ -1,5 +1,6 @@
   --[[  DEFINITIONS FOR MADRA  ]]--
--- This is a lua file.
+-- This is a lua file, *executed directly*, for now. Later it will be interpreted.
+--      PLEASE BE CAREFUL WHEN MAKING CHANGES !!!   :)           ...    D:
 
 BINfind = "/usr/bin/find"
 
@@ -28,3 +29,9 @@ BBlue      = '\u{1b}[1;34m'
 BPurple    = '\u{1b}[1;35m'
 BCyan      = '\u{1b}[1;36m'
 BWhite     = '\u{1b}[1;37m'
+
+
+  --[[  LAGOM SHELL OPTIONS  ]]--
+datefmt = "%X, %a %d %b"
+lagompromptfmt = "» "
+
