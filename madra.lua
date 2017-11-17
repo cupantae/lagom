@@ -1,13 +1,34 @@
 ----[[   madra library   ]]--
 --
----> definitions and functions to be called from e.g. lagon
+           --[[  GLOBALS  ]]--
+UID = "9999"
+HOME = "/"
+
+---> definitions and libraries
 dofile("madra.def")
+local lfs   = require  ("lfs")
+local posix = require ("posix")
 
 --[[ something about tables & packages..? ]]--
 
       --[[  ACTIONS AND TOKENS  ]]--
 action = {}
 token = {}
+
+ --[[ Change directory ]]--
+function MAcd ( location )
+    if location == nil then
+        location = gethome()
+    end
+    dirstring = tostring( location )
+    changed = lfs.chdir( dirstring )
+    if changed == true then
+        return EXIT_SUCCESS
+    else return EXIT_FAILURE
+    end
+end
+action.cd = MAcd
+
 
  --[[ Run commands through the shell ]]--
 function MAshell (command)
@@ -17,12 +38,18 @@ function MAshell (command)
     os.execute(cmdstring)
 end
 action.shell = MAshell
-token["!"] = action.shell
+token["$"] = action.shell
 
 
  --[[ Search using any search term -based "engine" ]]--
-function MAsearch (engine, ...)
-	
+function MAsearch (enginestring, ...)
+    efunc = engine[enginestring]
+    if efunc ~= nil then
+        return efunc()
+    else
+        io.write("I don't know that search engine.\n")
+        return EXIT_FAILURE
+    end
 end
 action.search = MAsearch
 token["?"] = action.search
@@ -69,6 +96,12 @@ function gathertostring (object)
     return rstring
 end
 
+function makeaction ( keyword, callback )
+    a = {}
+    a.str = keyword
+    a.cb  = callback
+end
+
  --[[ Find out the hostname of the computer ]]--
 function gethostname()
     hnfile = io.open("/etc/hostname", "r")
@@ -90,7 +123,24 @@ function gethostname()
     end
 end
 
+ --[[ Find out where the home folder is ]]--
+function gethome()
+    envhome = os.getenv("HOME")
+    if envhome ~= nil then
+        namehome = "/home/" .. USER
+        UID = getuid()
+        diratts = lfs.attributes (namehome)
+        if diratts == UID then
+            return namehome
+        end
+    end
+end
 
+ --[[ Find out the user's UID ]]--
+function getuid()
+    return posix.getuid()
+end
+    
 
   --[[  MISCELLANEOUS TEST FUNCTIONS  ]]--
 function halp (object)

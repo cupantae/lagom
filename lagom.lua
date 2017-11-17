@@ -9,12 +9,6 @@ local lfs = require ( "lfs" )
 dofile("madra.lua")
 
 
-function makeaction ( keyword, callback )
-    a = {}
-    a.str = keyword
-    a.cb  = callback
-end
-
 function promptloop ()
     actfunc = nil            --> The function run in this cycle
 
@@ -80,10 +74,6 @@ function cmdparser ( cmdstring )
 end
 
 
-
-actions = {}
-
-
    --------------
 --[[	MAIN	]]--
    --------------
@@ -91,3 +81,5 @@ actions = {}
 while str ~= "quit" do 
 	str = promptloop()
 end
+
+io.write("Thanks for using my shell. Goodbye!")
