@@ -5,6 +5,10 @@
   --[[  BINARY EXECUTABLE DEFINITIONS ]]--
 BINfind = "/usr/bin/find"
 
+  --[[  EXIT STATUS DEFINITIONS  ]]--
+EXIT_SUCCESS = 0
+EXIT_FAILURE = 1
+EXIT_NOTFOUND = 127
 
  --[[ Colours for terminals ]]--
 

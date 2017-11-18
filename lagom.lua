@@ -1,13 +1,22 @@
--------------------------------------------------
----[["""""""""""""""""""""""""""""""""""""""]]---
---[[      LAGOM: THE CHILLED-OUT SHELL       ]]--
----[[_______________________________________]]---
--------------------------------------------------
+ -------------------------------------------------------------------------
+---[["""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""]]---
+--[[         lagom: "the chilled-out shell", written in lua            ]]--
+--[[  Copyright © 2017 cupantae - Mark O'Neill - cupantae@uineill.net  ]]--
+---[[_________________________________________________________________]]---
+ -------------------------------------------------------------------------
+
 
 local lfs = require ( "lfs" )
 
 dofile("madra.lua")
 
+function main()
+    while str ~= "quit" do 
+            str = promptloop()
+    end
+    io.write("Thanks for using my shell. Goodbye!")
+    return EXIT_SUCCESS
+end
 
 function promptloop ()
     actfunc = nil            --> The function run in this cycle
@@ -26,11 +35,6 @@ function promptloop ()
     io.write(prompt_whole)
 
     cmdstring = io.read()
---[[	commandstring = tostring (command)	]]-- I don't think this will ever be needed.
-
---	bagowords = strsplit ( commandstring )
---[[	io.write ( "bagowords is a ".. tostring (type(bagowords)) .. "\n...OK?")
-	io.read()	]]-- debug
 
     actfunc, args = cmdparser ( cmdstring )
 
@@ -39,47 +43,30 @@ function promptloop ()
     end
 end
 
+ --[[ Turning the input into a table of strings, running the result. ]]--
 function cmdparser ( cmdstring )
-
-    i = 1
-  --  Tokens let us make directed commands like shell commands and web searches
---[[    initial = cmdstring:sub (1,1)      --> first letter is a token (?)
-    if token[initial] ~= nil then
-        cmdstring = cmdstring:sub(2)
-        args = strsplit (cmdstring)
-        return token[initial], cmdstring
+    cmdlist = strsplit (cmdstring)
+    if #cmdlist == 0 then
+        return nil
     else
-        args = strsplit (cmdstring)
-        if action[args[1]]             --[[               ~= nil then
-            actfunc = table.remove (args, 1)    --> first word is command
-            --args = cmdlist
-            return actfunc, args
+        initial = cmdlist[1]:sub(1,1)               -- If the first letter...
+        if token[initial] ~= nil then               --  ..is a "token" like !,?,$,#
+            cmdlist[1] = cmdlist[1]:sub(2)          --   ..then remove the token..
+            args = cmdlist
+            return token[initial], args             --    ..and execute its action.
+        elseif action[cmdlist[1]] ~= nil then
+            actstr = table.remove (cmdlist, 1)
+            actfunc = action[actstr]
+            args = cmdlist
+            return actfunc, args                    -- args is a table (!!)
         end
     end
-]]
-    initial = cmdstring:sub (1,1)      --> first letter
-    if token[initial] ~= nil then
-        args = cmdstring:sub(2)
-        return token[initial], args             -- args is string (!!)
-    else
-        args = strsplit (cmdstring)
-        if action[args[1]] ~= nil then
-            actfunc = table.remove (args, 1)
-            return actfunc, args                -- args is table
-        end
-    end
-        --if action [ cmdlist[1] ] ~= nil then
-          --  args = cmdlist
 
 end
 
 
-   --------------
---[[	MAIN	]]--
-   --------------
+   ---------------------------
+--[[  CALLING THE WHOLE LOT  ]]--
+   ---------------------------
 
-while str ~= "quit" do 
-	str = promptloop()
-end
-
-io.write("Thanks for using my shell. Goodbye!")
+main()

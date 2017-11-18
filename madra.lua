@@ -1,5 +1,11 @@
-----[[   madra library   ]]--
---
+ --------------------------------------------------------------------------
+---[[""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""]]---
+--[[       madra: a library of desktop actions, written in lua          ]]--
+--[[  Copyright © 2017 cupantae - Mark O'Neill - cupantae@uineill.net   ]]--
+---[[__________________________________________________________________]]---
+ --------------------------------------------------------------------------
+
+
            --[[  GLOBALS  ]]--
 UID = "9999"
 HOME = "/"
@@ -70,30 +76,31 @@ token["/"] = action.find
 function strsplit (string)
     stringlist = {}
     for word in string:gmatch ( "%S+" ) do  -- = length-1-or-more strings of non-space
-            stringlist:insert (word)
+            table.insert(stringlist, word)
     end
     return stringlist
 end
 
  --[[ Gather all elements of a table, in order, into a string ]]--
 function gathertostring (object)
-    typeo = type(object)
-    rstring = ""
-       -- space out terms:
-    if rstring ~= "" then rstring = rstring .. " " end
-    typev = type(v)
-    if typeo == "string" then
-        rstring = rstring .. object
-    elseif typeo == "number" then
-        rstring = rstring .. tostring(object)
-    elseif typeo == "table" then
-        for k,v in pairs(object) do
-            rstring = rstring .. gathertostring(v)
+    typeo = type(object)                -- what type is the object
+    if typeo == "string" then           -- string? then we're done
+        return object
+    elseif typeo == "table" then        -- table? then...
+        if #object > 1 then
+            firstobject = table.remove(object, 1)       -- break into first and rest.
+            return gathertostring(firstobject) .. ' ' .. gathertostring(object)
+        elseif #object == 1 then
+            return gathertostring(object[1])
+        elseif #object == 0 then
+            return ""
+        else
+            io.write("\n\nThe object has " .. tostring(#object) .. "entries!\n\tBarmy!!\n\n")
+            return EXIT_FAILURE
         end
-    else io.write(object .. " is a " .. typeo .. "\n")
+    else                                -- PLEASE LET ME KNOW if there's any
+        return tostring(object)         -- other data type I should worry about!!
     end
-
-    return rstring
 end
 
 function makeaction ( keyword, callback )
@@ -127,6 +134,8 @@ end
 function gethome()
     envhome = os.getenv("HOME")
     if envhome ~= nil then
+        return envhome
+    else
         namehome = "/home/" .. USER
         UID = getuid()
         diratts = lfs.attributes (namehome)
@@ -134,6 +143,8 @@ function gethome()
             return namehome
         end
     end
+    io.write("Never returned a home")
+    return EXIT_FAILURE
 end
 
  --[[ Find out the user's UID ]]--
