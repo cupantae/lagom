@@ -5,28 +5,57 @@
 ---[[__________________________________________________________________]]---
  --------------------------------------------------------------------------
 
+                      -------------------------------
+                   --[[  DEFINITIONS AND LIBRARIES  ]]--
+                      -------------------------------
 
-           --[[  GLOBALS  ]]--
-UID = "9999"
-HOME = "/"
-
----> definitions and libraries
 dofile("madra.def")
 local lfs   = require  ("lfs")
 local posix = require ("posix")
 
---[[ something about tables & packages..? ]]--
 
-      --[[  ACTIONS AND TOKENS  ]]--
-action = {}
-token = {}
+                          ----------------------
+                       --[[  GLOBAL VARIABLES  ]]--
+                          ----------------------
 
+global = {}
+      -- Madra is to be run by the user, for now. Having a UID of 0 (root)
+      --   should invoke very different behaviour.
+      --        It should also work like a daemon, being aware of other
+      --     instances and taking appropriate action (notification?), and
+      --    being aware of available information (and only update as needed)
+
+      -- Data relevant to a given shell is to be stored within
+      -- that shell's global context, not here (directory, effective uid...).
+
+ -- The initial values are unlikely choices, so that they'll show up in debugging.
+global.HOME  = "/"
+global.SHELL = "/exe/macos"
+global.UID   = "9999"
+global.USER  = "whocares"
+
+
+                       ----------------------------
+                    --[[  TABLES OF USABLE STUFF  ]]--
+                       ----------------------------
+ 
+action    = {}
+token     = {}
+protocol  = {}
+
+ 
+                         ------------------------
+                      --[[  ACTION DEFINITIONS  ]]--
+                         ------------------------
+ 
+   --[[  FILE MANAGEMENT  ]]--
  --[[ Change directory ]]--
 function MAcd ( location )
-    if location == nil then
-        location = gethome()
+    locstring = gathertostring ( location )
+    if locstring == "" then
+        locstring = gethome()
     end
-    dirstring = tostring( location )
+    dirstring = tostring( locstring )
     changed = lfs.chdir( dirstring )
     if changed == true then
         return EXIT_SUCCESS
@@ -36,11 +65,45 @@ end
 action.cd = MAcd
 
 
+ --[[ List directory contents ]]--
+function MAls ( location )
+    locstring = gathertostring ( location )
+    if locstring == "" then locstring = "." end
+    
+    iter, dir_obj = lfs.dir( locstring )
+
+    io.write("Showing contents of " .. locstring )
+    running = true
+    while name ~= nil do
+        name = dir_obj:next()
+        if type(name) == "string" then
+            io.write(name .. "\n")
+        end
+    end
+    io.write("  === DONE ===\n\n")
+    return EXIT_SUCCESS
+end
+action.ls = MAls
+
+
+ --[[ Run commands directly, not read by any shell ]]--
+function MArun (binstring, args)
+    io.write("  ***  Executing this file:  ***\n".. binstring .."\n\n")
+    if #args ~= 0 then
+        io.write("  with these " .. #args .. " arguments:\n")
+        for k,v in pairs(args) do
+            print(k,v)
+        end
+    end
+    posix.exec (binstring, args)
+end
+action.run = MArun
+token["!"] = action.run
+
  --[[ Run commands through the shell ]]--
 function MAshell (command)
-   -- necessary? :
     cmdstring = gathertostring(command)
-    io.write("  ***  Executing this command:  ***\n" .. cmdstring ..  "\n\n")
+    io.write("  ***  Executing this command in ".. global.SHELL ..":  ***\n" .. cmdstring ..  "\n\n")
     os.execute(cmdstring)
 end
 action.shell = MAshell
@@ -69,9 +132,11 @@ end
 action.find = MAfind
 token["/"] = action.find
 
+                               ----------------------
+                            --[[  HELPER FUNCTIONS  ]]--
+                               ----------------------
 
-        --[[  HELPER FUNCTIONS  ]]--
-
+   --[[  STRING/TABLE CONVERSION  ]]--
  --[[ Split a string into a table of its words ]]--
 function strsplit (string)
     stringlist = {}
@@ -103,12 +168,25 @@ function gathertostring (object)
     end
 end
 
-function makeaction ( keyword, callback )
-    a = {}
-    a.str = keyword
-    a.cb  = callback
+
+   --[[  OBJECT INSPECTION  ]]--
+ --[[ Identify the type of a given string ]]--
+function understand ( obstring )
+    --obstring = gathertostring ( object )
+    obsplit  = strsplit ( obstring)
+    if #obsplit > 1 then
+        io.write("The object contains spaces.")
+    end
+    protocol = obstring:match( "%w+:" )         -- alphanumerc characters and :
+    if protocol ~= nil then
+        protocol = protocol:gsub(":", "")    -- remove :
+    end
+
+
 end
 
+
+   --[[  SYSTEM DETAILS  ]]--
  --[[ Find out the hostname of the computer ]]--
 function gethostname()
     hnfile = io.open("/etc/hostname", "r")
@@ -153,24 +231,12 @@ function getuid()
 end
     
 
-  --[[  MISCELLANEOUS TEST FUNCTIONS  ]]--
-function halp (object)
-    typeo = type(object)
-    if typeo == "table" then
-        print("  k", "type(k)", "  v", "type(v)")
-        for k,v in pairs(object) do
-            typev = type(v)
-            print( k, type(k), v, typev)
-            if typev == table then
-                print("\n\nContents of \"" .. v .. "\"..\n")
-                halp(v)
-            --elseif function ..?
-            end
-        end
-    else print(object)
-    end
-end
 
+function makeaction ( keyword, callback )
+    a = {}
+    a.str = keyword
+    a.cb  = callback
+end
                ----------
             --[[  MAIN  ]]--
                ----------

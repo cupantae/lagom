@@ -6,9 +6,26 @@
  -------------------------------------------------------------------------
 
 
-local lfs = require ( "lfs" )
+                      -------------------------------
+                   --[[  DEFINITIONS AND LIBRARIES  ]]--
+                      -------------------------------
 
 dofile("madra.lua")
+local lfs = require ( "lfs" )
+local posix = require ("posix")
+
+                   --------------------------------------
+                --[[  GLOBAL VARIABLES (TO THIS SHELL)  ]]--
+                   --------------------------------------
+HOME       = "/"
+HOSTNAME   = "unlikelyhostname"
+UID        = "9999"
+USER       = "whocares"
+WORKINGDIR = "/"
+
+                                ----------
+                             --[[  MAIN  ]]--
+                                ----------
 
 function main()
     while str ~= "quit" do 
@@ -24,12 +41,12 @@ function promptloop ()
  --[[ Getting details to display the prompt ]]--
     USER = os.getenv("USER")
     HOSTNAME = gethostname()
-    PWD = lfs.currentdir()            --> or os.getenv("PWD") -- ? Probably better to take
+    WORKINGDIR = lfs.currentdir()            --> or os.getenv("PWD") -- ? Probably better to take
     TIME = os.date(datefmt)           -- \->  lua's word for it than some external process.
     infostr = "\n" .. BGreen .. USER
                    .. White  .. "@"
                    .. Green .. HOSTNAME
-                   .. Blue .. " [" .. PWD .. "] "
+                   .. Blue .. " [" .. WORKINGDIR .. "] "
                    .. BWhite .. TIME  .. "\n"
     prompt_whole = infostr .. Colour_Off .. lagompromptfmt
     io.write(prompt_whole)
