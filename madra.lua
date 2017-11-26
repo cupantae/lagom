@@ -54,6 +54,7 @@ function MAcd ( location )
     locstring = gathertostring ( location )
     if locstring == "" then
         locstring = gethome()
+    --else locstring = WORKINGDIR .. lo
     end
     dirstring = tostring( locstring )
     changed = lfs.chdir( dirstring )
@@ -171,18 +172,66 @@ end
 
    --[[  OBJECT INSPECTION  ]]--
  --[[ Identify the type of a given string ]]--
-function understand ( obstring )
-    --obstring = gathertostring ( object )
-    obsplit  = strsplit ( obstring)
+function understand ( object )
+ --returns:
+    obtype = ""
+    props = {}
+
+    obstring = gathertostring ( object )
+    obsplit  = strsplit ( obstring )
     if #obsplit > 1 then
         io.write("The object contains spaces.")
     end
-    protocol = obstring:match( "%w+:" )         -- alphanumerc characters and :
-    if protocol ~= nil then
-        protocol = protocol:gsub(":", "")    -- remove :
+    if obsplit[1]:sub(1,1) == "/" then
+        obtype = "absolutepath"
+        props = getfileprops(obstring)
+    else
+        protocol = obstring:match( "%w+://" )    -- alphanumerics and ://
+        if protocol ~= nil then
+            obtype = "protocol"
+            protocol = protocol:gsub("://", "")    -- remove :
+            if protocol == "file" then
+                obstring = obstring:gsub('file://', '', 1) --remove first
+                props = getfileprops (obstring)
+              -- ..more protocols.. --
+            end
+        end
     end
 
+    return obtype, props
 
+end
+
+
+function getfileprops ( obstring )
+  -- is it a symlink?
+    properties = {}
+    properties.attributes = lfs.symlinkattributes ( obstring )
+    if properties.attributes == nil then
+        properties.exists = false
+    else
+        properties.exists = true
+        if properties.attributes.mode == "link" then
+            properties.symlink    = true
+            properties.attributes = lfs.attributes ( obstring )
+        else
+            properties.symlink    = false
+        end
+
+      -- find attributes:
+        if properties.attributes.mode == "directory" then
+            properties.filetype = "dir"
+        elseif properties.attributes.mode == "block device" then
+            properties.filetype = "blockdev"
+        elseif properties.attributes.mode == "char device" then
+            properties.filetype = "chardev"
+           -- ...more filetypes... --
+        else
+            MArun(BINfile, obstring)
+        end
+    end
+
+    return properties
 end
 
 

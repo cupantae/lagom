@@ -17,6 +17,7 @@ local posix = require ("posix")
                    --------------------------------------
                 --[[  GLOBAL VARIABLES (TO THIS SHELL)  ]]--
                    --------------------------------------
+ -- The initial values are unlikely choices, so that they'll show up in debugging.
 HOME       = "/"
 HOSTNAME   = "unlikelyhostname"
 UID        = "9999"
