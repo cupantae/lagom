@@ -14,15 +14,16 @@ dofile("madra.lua")
 local lfs = require ( "lfs" )
 local posix = require ("posix")
 
-                   --------------------------------------
-                --[[  GLOBAL VARIABLES (TO THIS SHELL)  ]]--
-                   --------------------------------------
+                       -----------------------------
+                    --[[  ENVIRONMENTAL VARIABLES  ]]--
+                       -----------------------------
+env = {}
  -- The initial values are unlikely choices, so that they'll show up in debugging.
-HOME       = "/"
-HOSTNAME   = "unlikelyhostname"
-UID        = "9999"
-USER       = "whocares"
-WORKINGDIR = "/"
+env.HOME       = "/"
+env.HOSTNAME   = "unlikelyhostname"
+env.UID        = "9999"
+env.USER       = "whocares"
+env.WORKINGDIR = "/"
 
                                 ----------
                              --[[  MAIN  ]]--
@@ -40,15 +41,15 @@ function promptloop ()
     actfunc = nil            --> The function run in this cycle
 
  --[[ Getting details to display the prompt ]]--
-    USER = os.getenv("USER")
-    HOSTNAME = gethostname()
-    WORKINGDIR = lfs.currentdir()            --> or os.getenv("PWD") -- ? Probably better to take
-    TIME = os.date(datefmt)           -- \->  lua's word for it than some external process.
-    infostr = "\n" .. BGreen .. USER
+    env.USER = os.getenv("USER")
+    env.HOSTNAME = gethostname()
+    env.WORKINGDIR = lfs.currentdir()            --> or os.getenv("PWD") -- ? Probably better to take
+    env.TIME = os.date(datefmt)           -- \->  lua's word for it than some external process.
+    infostr = "\n" .. BGreen .. env.USER
                    .. White  .. "@"
-                   .. Green .. HOSTNAME
-                   .. Blue .. " [" .. WORKINGDIR .. "] "
-                   .. BWhite .. TIME  .. "\n"
+                   .. Green .. env.HOSTNAME
+                   .. Blue .. " [" .. env.WORKINGDIR .. "] "
+                   .. BWhite .. env.TIME  .. "\n"
     prompt_whole = infostr .. Colour_Off .. lagompromptfmt
     io.write(prompt_whole)
 
@@ -58,11 +59,17 @@ function promptloop ()
 
     if type(actfunc) == "function" then
         actfunc(args)
+    elseif type(actfunc) == "number" then
+        io.write("I don't know what you mean.\n")
     end
 end
 
  --[[ Turning the input into a table of strings, running the result. ]]--
 function cmdparser ( cmdstring )
+ --returns:
+    actfunc = nil
+    args = {}
+
     cmdlist = strsplit (cmdstring)
     if #cmdlist == 0 then
         return nil
@@ -77,11 +84,19 @@ function cmdparser ( cmdstring )
             actfunc = action[actstr]
             args = cmdlist
             return actfunc, args                    -- args is a table (!!)
+        else return EXIT_DONTKNOW
         end
     end
 
 end
 
+ --[[ This function should understand the command even if a synonym (within
+     reason and without ambiguity) OR if a substring of it is given.
+  These two things might be a bit in opposition of each other, and for the
+    substring, I might have to store the actions differently.
+        For now, only the full action name given in the table will do. ]]--
+function understandaction ( actstring ) 
+end
 
    ---------------------------
 --[[  CALLING THE WHOLE LOT  ]]--

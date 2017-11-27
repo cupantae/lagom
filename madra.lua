@@ -183,15 +183,15 @@ function understand ( object )
         io.write("The object contains spaces.")
     end
     if obsplit[1]:sub(1,1) == "/" then
-        obtype = "absolutepath"
+        obtype = "localpath"
         props = getfileprops(obstring)
     else
         protocol = obstring:match( "%w+://" )    -- alphanumerics and ://
         if protocol ~= nil then
-            obtype = "protocol"
             protocol = protocol:gsub("://", "")    -- remove :
             if protocol == "file" then
                 obstring = obstring:gsub('file://', '', 1) --remove first
+                obtype = "localpath"
                 props = getfileprops (obstring)
               -- ..more protocols.. --
             end
