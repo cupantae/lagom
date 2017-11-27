@@ -5,9 +5,9 @@
 ---[[__________________________________________________________________]]---
  --------------------------------------------------------------------------
 
-                      -------------------------------
-                   --[[  MODULE   ]]--
-                      -------------------------------
+                            ------------------
+                         --[[  MODULE TABLE  ]]--
+                            ------------------
 
 local madra = {}
 
@@ -42,25 +42,29 @@ global.UID   = "9999"
 global.USER  = "whocares"
 
 
-                       ----------------------------
-                    --[[  TABLES OF USABLE STUFF  ]]--
-                       ----------------------------
+                        ----------------------------
+                     --[[  TABLES OF USABLE STUFF  ]]--
+                        ----------------------------
  
 action    = {}
 token     = {}
 protocol  = {}
 
  
-                         ------------------------
-                      --[[  ACTION DEFINITIONS  ]]--
-                         ------------------------
+                          ------------------------
+                       --[[  ACTION DEFINITIONS  ]]--
+                          ------------------------
  
    --[[  FILE MANAGEMENT  ]]--
  --[[ Change directory ]]--
 function madra.cd ( location )
+
+    global.HOME = madra.gethome()
     locstring = madra.gathertostring ( location )
+    locstring = locstring:gsub("~", global.HOME)
+
     if locstring == "" then
-        locstring = madra.gethome()
+        locstring = global.HOME
     --else locstring = WORKINGDIR .. lo
     end
     dirstring = tostring( locstring )
@@ -78,10 +82,12 @@ function madra.ls ( location )
     locstring = madra.gathertostring ( location )
     if locstring == "" then locstring = "." end
     
+    global.HOME = madra.gethome()
+    locstring = locstring:gsub("~", global.HOME)
+
     iter, dir_obj = lfs.dir( locstring )
 
     io.write("Showing contents of " .. locstring )
-    running = true
 
     name = ""
     while name ~= nil do
@@ -97,9 +103,13 @@ action.ls = madra.ls
 
 
  --[[ Run commands directly, not read by any shell ]]--
-function madra.run (binstring, args)
+function madra.run (binary, ...)
+    binstring = tostring(binary)
+    args = {...}
+
     io.write("  ***  Executing this file:  ***\n".. binstring .."\n\n")
-    if #args ~= 0 then
+
+    if args ~= nil then
         io.write("  with these " .. #args .. " arguments:\n")
         for k,v in pairs(args) do
             print(k,v)
@@ -291,13 +301,20 @@ function madra.getuid()
 end
     
 
+   --[[  MADRA ACTIONS  ]]--
+ --[[ Reload madra / this file ]]--
+function madra.reload ()
+    package.loaded.madra = nil
+    madra = require "madra"
+end
 
-function makeaction ( keyword, callback )
+--[[    for when needed:
+function madra.makeaction ( keyword, callback )
     a = {}
     a.str = keyword
     a.cb  = callback
 end
-
+  ]]--
 
                ----------
             --[[  MAIN  ]]--
