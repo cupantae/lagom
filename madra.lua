@@ -6,6 +6,12 @@
  --------------------------------------------------------------------------
 
                       -------------------------------
+                   --[[  MODULE   ]]--
+                      -------------------------------
+
+local madra = {}
+
+                      -------------------------------
                    --[[  DEFINITIONS AND LIBRARIES  ]]--
                       -------------------------------
 
@@ -26,11 +32,12 @@ global = {}
       --    being aware of available information (and only update as needed)
 
       -- Data relevant to a given shell is to be stored within
-      -- that shell's global context, not here (directory, effective uid...).
+      -- that shell's environment, not here (directory, effective uid...).
 
  -- The initial values are unlikely choices, so that they'll show up in debugging.
 global.HOME  = "/"
 global.SHELL = "/exe/macos"
+global.OS    = "unknown"
 global.UID   = "9999"
 global.USER  = "whocares"
 
@@ -50,10 +57,10 @@ protocol  = {}
  
    --[[  FILE MANAGEMENT  ]]--
  --[[ Change directory ]]--
-function MAcd ( location )
-    locstring = gathertostring ( location )
+function madra.cd ( location )
+    locstring = madra.gathertostring ( location )
     if locstring == "" then
-        locstring = gethome()
+        locstring = madra.gethome()
     --else locstring = WORKINGDIR .. lo
     end
     dirstring = tostring( locstring )
@@ -63,18 +70,20 @@ function MAcd ( location )
     else return EXIT_FAILURE
     end
 end
-action.cd = MAcd
+action.cd = madra.cd
 
 
  --[[ List directory contents ]]--
-function MAls ( location )
-    locstring = gathertostring ( location )
+function madra.ls ( location )
+    locstring = madra.gathertostring ( location )
     if locstring == "" then locstring = "." end
     
     iter, dir_obj = lfs.dir( locstring )
 
     io.write("Showing contents of " .. locstring )
     running = true
+
+    name = ""
     while name ~= nil do
         name = dir_obj:next()
         if type(name) == "string" then
@@ -84,11 +93,11 @@ function MAls ( location )
     io.write("  === DONE ===\n\n")
     return EXIT_SUCCESS
 end
-action.ls = MAls
+action.ls = madra.ls
 
 
  --[[ Run commands directly, not read by any shell ]]--
-function MArun (binstring, args)
+function madra.run (binstring, args)
     io.write("  ***  Executing this file:  ***\n".. binstring .."\n\n")
     if #args ~= 0 then
         io.write("  with these " .. #args .. " arguments:\n")
@@ -98,21 +107,21 @@ function MArun (binstring, args)
     end
     posix.exec (binstring, args)
 end
-action.run = MArun
+action.run = madra.run
 token["!"] = action.run
 
  --[[ Run commands through the shell ]]--
-function MAshell (command)
-    cmdstring = gathertostring(command)
+function madra.shellexec (command)
+    cmdstring = madra.gathertostring(command)
     io.write("  ***  Executing this command in ".. global.SHELL ..":  ***\n" .. cmdstring ..  "\n\n")
     os.execute(cmdstring)
 end
-action.shell = MAshell
+action.shell = madra.shellexec
 token["$"] = action.shell
 
 
  --[[ Search using any search term -based "engine" ]]--
-function MAsearch (enginestring, ...)
+function madra.search (enginestring, ...)
     efunc = engine[enginestring]
     if efunc ~= nil then
         return efunc()
@@ -121,16 +130,16 @@ function MAsearch (enginestring, ...)
         return EXIT_FAILURE
     end
 end
-action.search = MAsearch
+action.search = madra.search
 token["?"] = action.search
 
  --[[ Find files and objects among your data ]]--
-function MAfind (path, ...)
+function madra.find (path, ...)
     terms = {...}
-    cmdstring = gathertostring (BINfind .. " " .. path .. " " .. terms)
+    cmdstring = madra.gathertostring (BINfind .. " " .. path .. " " .. terms)
     os.execute(cmdstring)
 end
-action.find = MAfind
+action.find = madra.find
 token["/"] = action.find
 
                                ----------------------
@@ -139,7 +148,7 @@ token["/"] = action.find
 
    --[[  STRING/TABLE CONVERSION  ]]--
  --[[ Split a string into a table of its words ]]--
-function strsplit (string)
+function madra.strsplit (string)
     stringlist = {}
     for word in string:gmatch ( "%S+" ) do  -- = length-1-or-more strings of non-space
             table.insert(stringlist, word)
@@ -148,16 +157,16 @@ function strsplit (string)
 end
 
  --[[ Gather all elements of a table, in order, into a string ]]--
-function gathertostring (object)
+function madra.gathertostring (object)
     typeo = type(object)                -- what type is the object
     if typeo == "string" then           -- string? then we're done
         return object
     elseif typeo == "table" then        -- table? then...
         if #object > 1 then
             firstobject = table.remove(object, 1)       -- break into first and rest.
-            return gathertostring(firstobject) .. ' ' .. gathertostring(object)
+            return madra.gathertostring(firstobject) .. ' ' .. madra.gathertostring(object)
         elseif #object == 1 then
-            return gathertostring(object[1])
+            return madra.gathertostring(object[1])
         elseif #object == 0 then
             return ""
         else
@@ -172,19 +181,19 @@ end
 
    --[[  OBJECT INSPECTION  ]]--
  --[[ Identify the type of a given string ]]--
-function understand ( object )
+function madra.understand ( object )
  --returns:
     obtype = ""
     props = {}
 
-    obstring = gathertostring ( object )
-    obsplit  = strsplit ( obstring )
+    obstring = madra.gathertostring ( object )
+    obsplit  = madra.strsplit ( obstring )
     if #obsplit > 1 then
         io.write("The object contains spaces.")
     end
     if obsplit[1]:sub(1,1) == "/" then
         obtype = "localpath"
-        props = getfileprops(obstring)
+        props = madra.getfileprops(obstring)
     else
         protocol = obstring:match( "%w+://" )    -- alphanumerics and ://
         if protocol ~= nil then
@@ -192,9 +201,11 @@ function understand ( object )
             if protocol == "file" then
                 obstring = obstring:gsub('file://', '', 1) --remove first
                 obtype = "localpath"
-                props = getfileprops (obstring)
+                props = madra.getfileprops (obstring)
               -- ..more protocols.. --
             end
+        else
+
         end
     end
 
@@ -203,7 +214,7 @@ function understand ( object )
 end
 
 
-function getfileprops ( obstring )
+function madra.getfileprops ( obstring )
   -- is it a symlink?
     properties = {}
     properties.attributes = lfs.symlinkattributes ( obstring )
@@ -227,7 +238,7 @@ function getfileprops ( obstring )
             properties.filetype = "chardev"
            -- ...more filetypes... --
         else
-            MArun(BINfile, obstring)
+            madra.run(BINfile, obstring)
         end
     end
 
@@ -237,7 +248,7 @@ end
 
    --[[  SYSTEM DETAILS  ]]--
  --[[ Find out the hostname of the computer ]]--
-function gethostname()
+function madra.gethostname()
     hnfile = io.open("/etc/hostname", "r")
     if hnfile ~= nil then
         hostname = tostring ( hnfile:read() )
@@ -258,13 +269,13 @@ function gethostname()
 end
 
  --[[ Find out where the home folder is ]]--
-function gethome()
+function madra.gethome()
     envhome = os.getenv("HOME")
     if envhome ~= nil then
         return envhome
     else
         namehome = "/home/" .. USER
-        UID = getuid()
+        UID = madra.getuid()
         diratts = lfs.attributes (namehome)
         if diratts == UID then
             return namehome
@@ -275,7 +286,7 @@ function gethome()
 end
 
  --[[ Find out the user's UID ]]--
-function getuid()
+function madra.getuid()
     return posix.getuid()
 end
     
@@ -286,10 +297,13 @@ function makeaction ( keyword, callback )
     a.str = keyword
     a.cb  = callback
 end
+
+
                ----------
             --[[  MAIN  ]]--
                ----------
 
   --[[  DEFINITIONS, FILES, CHOICES  ]]--
-HOSTNAME = gethostname()
+HOSTNAME = madra.gethostname()
 
+return madra

@@ -10,8 +10,8 @@
                    --[[  DEFINITIONS AND LIBRARIES  ]]--
                       -------------------------------
 
-dofile("madra.lua")
-local lfs = require ( "lfs" )
+local madra = require ("madra")
+local lfs   = require ("lfs")
 local posix = require ("posix")
 
                        -----------------------------
@@ -42,7 +42,7 @@ function promptloop ()
 
  --[[ Getting details to display the prompt ]]--
     env.USER = os.getenv("USER")
-    env.HOSTNAME = gethostname()
+    env.HOSTNAME = madra.gethostname()
     env.WORKINGDIR = lfs.currentdir()            --> or os.getenv("PWD") -- ? Probably better to take
     env.TIME = os.date(datefmt)           -- \->  lua's word for it than some external process.
     infostr = "\n" .. BGreen .. env.USER
@@ -70,7 +70,7 @@ function cmdparser ( cmdstring )
     actfunc = nil
     args = {}
 
-    cmdlist = strsplit (cmdstring)
+    cmdlist = madra.strsplit (cmdstring)
     if #cmdlist == 0 then
         return nil
     else
