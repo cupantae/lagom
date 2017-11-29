@@ -55,16 +55,48 @@ function promptloop ()
 
     cmdstring = io.read()
 
-    actfunc, args = cmdparser ( cmdstring )
+    actfunc, args = newparser ( cmdstring )
 
-    if type(actfunc) == "function" then
+    aftype = type(actfunc)
+    if aftype  == "function" then
         actfunc(args)
-    elseif type(actfunc) == "number" then
+    elseif aftype == "number" then
         io.write("I don't know what you mean.\n")
+    elseif actfunc == "quit" then
+        io.write("\n   ===========================\n   === Quit by user action ===\n   ===========================\n\n")
+        return "quit"
+    end
+end
+
+function newparser ( cmdstring )
+ --returns:
+    actfunc = nil
+  --rest = "string"
+    if cmdstring == nil then
+        return "quit"
+    elseif ( type(cmdstring) == "string" ) then
+        leader, rest = madra.firstoff ( cmdstring )
+        if leader == nil then
+            return nil
+        else
+            initial = leader:sub(1,1)               -- If the first letter...
+            if token[initial] ~= nil then               --  ..is a "token" like !,?,$,#
+                rest = leader:sub(2) .. rest            --   ..add the first word on..
+                return token[initial], rest             --    ..and execute token's action.
+            elseif action[leader] ~= nil then
+                return action[leader], rest
+            else
+                ltype, lprops = madra.understand( leader )
+                if  lprops.exists == true then
+                    return action.view, rest
+                end
+            end
+        end
     end
 end
 
  --[[ Turning the input into a table of strings, running the result. ]]--
+ --[[
 function cmdparser ( cmdstring )
  --returns:
     actfunc = nil
@@ -79,16 +111,18 @@ function cmdparser ( cmdstring )
             cmdlist[1] = cmdlist[1]:sub(2)          --   ..then remove the token..
             args = cmdlist
             return token[initial], args             --    ..and execute its action.
-        elseif action[cmdlist[1]] ~= nil then
+        elseif action[cmdlist[1]]--[[ ~= nil then
             actstr = table.remove (cmdlist, 1)
             actfunc = action[actstr]
             args = cmdlist
             return actfunc, args                    -- args is a table (!!)
-        else return EXIT_DONTKNOW
+        else --return EXIT_DONTKNOW
+
         end
     end
 
 end
+ ]]--
 
  --[[ This function should understand the command even if a synonym (within
      reason and without ambiguity) OR if a substring of it is given.

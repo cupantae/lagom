@@ -156,9 +156,22 @@ token["/"] = action.find
                             --[[  HELPER FUNCTIONS  ]]--
                                ----------------------
 
+   --[[  STRING MANIPULATION  ]]--
+ --[[ Pop off the first word; return it and the rest ]]--
+function madra.firstoff ( obstring )
+    firstword = obstring:match ( "%S+" )                     --> first collection of non-spaces.
+    if firstword == nil then
+        return nil
+    else
+        rest = obstring:gsub( "%s*" .. firstword .. "%s*" , "" , 1 ) --> minus firstword and spaces.
+        return firstword, rest
+    end
+end
+
+
    --[[  STRING/TABLE CONVERSION  ]]--
  --[[ Split a string into a table of its words ]]--
-function madra.strsplit (string)
+function madra.strsplit ( string )
     stringlist = {}
     for word in string:gmatch ( "%S+" ) do  -- = length-1-or-more strings of non-space
             table.insert(stringlist, word)
@@ -203,19 +216,38 @@ function madra.understand ( object )
     end
     if obsplit[1]:sub(1,1) == "/" then
         obtype = "localpath"
-        props = madra.getfileprops(obstring)
+        props = madra.getfileprops (obstring)
     else
-        protocol = obstring:match( "%w+://" )    -- alphanumerics and ://
+        protocol = obstring:match ( "%w+://" )    -- alphanumerics and ://
         if protocol ~= nil then
-            protocol = protocol:gsub("://", "")    -- remove :
+            protocol = protocol:gsub ( "://", "" )    -- remove :
+            rest = obstring:gsub (protocol .. "://", "", 1) --remove protocol
             if protocol == "file" then
-                obstring = obstring:gsub('file://', '', 1) --remove first
                 obtype = "localpath"
                 props = madra.getfileprops (obstring)
+            elseif protocol == "http" then
+                obtype = "netpath"
+            elseif protocol == "https" then
+                obtype = "netpath"
+            elseif protocol == "ftp" then
+                obtype = "netpath"
               -- ..more protocols.. --
             end
-        else
-
+            --debug:
+            io.write("File: " .. obstring .. "\n\\_> Protocol: " .. protocol .. "\n\n")
+        else -- protocol == nil
+            props = madra.getfileprops (obstring)
+            if props.domain == "localhost" then
+                obtype = "localfile"
+                if props.exists == true then
+                    dfsjk = true
+                    -- madra.view( obstring )
+                else
+                    io.write( "The file \"" .. obstring .. "\" does not exist\n" )
+                end
+            else
+                linkmatch = obstring:match( "[%w+.]*%w+/.*" )
+            end
         end
     end
 
@@ -223,14 +255,17 @@ function madra.understand ( object )
 
 end
 
-
+ --[[ Get the properties of a file ]]--
 function madra.getfileprops ( obstring )
-  -- is it a symlink?
+ --returns:
     properties = {}
+
+  -- is it a symlink?
     properties.attributes = lfs.symlinkattributes ( obstring )
     if properties.attributes == nil then
         properties.exists = false
     else
+        properties.domain = "localhost"
         properties.exists = true
         if properties.attributes.mode == "link" then
             properties.symlink    = true
@@ -309,7 +344,7 @@ function madra.reload ()
 end
 
 --[[    for when needed:
-function madra.makeaction ( keyword, callback )
+local function makeaction ( keyword, callback )
     a = {}
     a.str = keyword
     a.cb  = callback
