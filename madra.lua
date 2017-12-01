@@ -37,7 +37,6 @@ global = {}
  -- The initial values are unlikely choices, so that they'll show up in debugging.
 global.HOME     = "/"
 global.HOSTNAME = "nohost"
-global.SHELL    = "/exe/macos"
 global.OS       = "unknown"
 global.UID      = "9999"
 global.USER     = "whocares"
@@ -167,8 +166,9 @@ token["!"] = action.run
 
  --[[ Run commands through the shell ]]--
 function madra.shellexec (command)
+    SHELL = madra.getshell()
     cmdstring = madra.gathertostring(command)
-    io.write("  ***  Executing this command in ".. global.SHELL ..":  ***\n" .. cmdstring ..  "\n\n")
+    io.write("  ***  Executing this command in ".. SHELL ..":  ***\n" .. cmdstring ..  "\n\n")
     os.execute(cmdstring)
 end
 mode.shell = true
@@ -189,10 +189,10 @@ mode.search = true
 action.search = madra.search
 token["?"] = action.search
 
- --[[ Find files and objects among your data ]]--
+ --[[ View object(s) and actions about it/them ]]--
 function madra.view ( obstring )
-    obtype, obprops = understand(obstring)
-    if props.exists == true then
+    obtype, obprops = madra.understand(obstring)
+    if obprops.exists == true then
         io.write(obstring)
     end
 end
@@ -263,35 +263,38 @@ end
 
    --[[  OBJECT INSPECTION  ]]--
  --[[ Identify the type of a given string ]]--
-function madra.understand ( object )
+function madra.understand ( obstring )
  --returns:
     obtype = ""
     props = {}
 
-    obstring = madra.gathertostring ( object )
-    obsplit  = madra.strsplit ( obstring )
+    --obstring = madra.gathertostring ( object )
+--[[    obsplit  = madra.strsplit ( obstring )
     if #obsplit > 1 then
         io.write("The object contains spaces.")
     end
-    if obsplit[1]:sub(1,1) == "/" then
+    if obsplit[1]:sub(1,1) == "/" then ]]
+    if obstring:sub(1,1) == "/" then
+        props.protocol = "file"
         obtype = "localpath"
         props = madra.getfileprops (obstring)
     else
-        protocol = obstring:match ( "%w+://" )    -- alphanumerics and ://
-        if protocol ~= nil then
-            protocol = protocol:gsub ( "://", "" )    -- remove :
-            rest = obstring:gsub (protocol .. "://", "", 1) --remove protocol
-            if protocol == "file" then
+        props.protocol = obstring:match ( "%w+://" )    -- alphanumerics and ://
+        if props.protocol ~= nil then
+            props.protocol = props.protocol:gsub ( "://", "" )    -- remove :
+            rest = obstring:gsub (props.protocol .. "://", "", 1) --remove protocol
+            if props.protocol == "file" then
                 obtype = "localpath"
                 props = madra.getfileprops (obstring)
-            elseif protocol == "http" then
+            elseif props.protocol == "http" then
                 obtype = "netpath"
-            elseif protocol == "https" then
+            elseif props.protocol == "https" then
                 obtype = "netpath"
-            elseif protocol == "ftp" then
+            elseif props.protocol == "ftp" then
                 obtype = "netpath"
               -- ..more protocols.. --
             end
+            --props = madra.getnetprops( obstring, props )
             --debug:
             io.write("File: " .. obstring .. "\n\\_> Protocol: " .. protocol .. "\n\n")
         else -- protocol == nil
@@ -369,34 +372,41 @@ function madra.gethostname()
                 return hostname
             end
         end ]]
+    else return global.HOSTNAME
     end
+
 end
 
  --[[ Find out where the home folder is ]]--
-function madra.gethome()
+function madra.gethome( USER )
     envhome = os.getenv("HOME")
     if envhome ~= nil then
         return envhome
-    else
+    elseif USER ~= nil then
         namehome = "/home/" .. USER
         UID = madra.getuid()
         diratts = lfs.attributes (namehome)
         if diratts == UID then
             return namehome
         end
+    else return global.HOME
     end
-    io.write("Never returned a home")
     return EXIT_FAILURE
+end
+
+ --[[ Find out the current shell ]]--
+function madra.getshell()
+    return os.getenv("SHELL")
 end
 
  --[[ Find out the user's UID ]]--
 function madra.getuid()
     return posix.getuid()
 end
-    
+
  --[[ Find out the current username ]]--
 function madra.getuser()
-    UID = posix.getuid()
+    return os.getenv("USER")
 end
     
 

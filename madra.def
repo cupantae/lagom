@@ -4,6 +4,7 @@
 
   --[[  BINARY EXECUTABLE DEFINITIONS ]]--
 BINfind = "/usr/bin/find"
+BINfile = "/usr/bin/file"
 
   --[[  EXIT STATUS DEFINITIONS  ]]--
 EXIT_SUCCESS  =   0
