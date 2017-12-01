@@ -35,21 +35,24 @@ global = {}
       -- that shell's environment, not here (directory, effective uid...).
 
  -- The initial values are unlikely choices, so that they'll show up in debugging.
-global.HOME  = "/"
-global.SHELL = "/exe/macos"
-global.OS    = "unknown"
-global.UID   = "9999"
-global.USER  = "whocares"
+global.HOME     = "/"
+global.HOSTNAME = "nohost"
+global.SHELL    = "/exe/macos"
+global.OS       = "unknown"
+global.UID      = "9999"
+global.USER     = "whocares"
 
 
                         ----------------------------
                      --[[  TABLES OF USABLE STUFF  ]]--
                         ----------------------------
  
-action    = {}
-token     = {}
-protocol  = {}
+action    = {}  --> actions the user can run
+token     = {}  --> single character abbreviations of the above
+mode      = {}  --> string name of mode for a given action
 
+protocol  = {}  --> the protocols madra recognises
+filetype  = {}  --> the filetypes madra recognises
  
                           ------------------------
                        --[[  ACTION DEFINITIONS  ]]--
@@ -74,8 +77,23 @@ function madra.cd ( location )
     else return EXIT_FAILURE
     end
 end
-action.cd = madra.cd
+mode.cd = false
+action.cd  = madra.cd
 
+madra.go  = madra.cd
+mode.go = true
+action.go  = madra.go
+token["="] = action.go
+
+ --[[ Find files and objects among your data ]]--
+function madra.find (path, ...)
+    terms = {...}
+    cmdstring = madra.gathertostring (BINfind .. " " .. path .. " " .. terms)
+    os.execute(cmdstring)
+end
+mode.find = true
+action.find = madra.find
+token["/"] = action.find
 
  --[[ List directory contents ]]--
 function madra.ls ( location )
@@ -99,17 +117,38 @@ function madra.ls ( location )
     io.write("  === DONE ===\n\n")
     return EXIT_SUCCESS
 end
+mode.ls = false
 action.ls = madra.ls
 
+-- aliases:
+action.list = madra.ls
+mode.list = mode.ls
+
+ --[[ Make new directory/-ies ]]--
+function madra.mkdir ( path )
+ --TODO: Make this work; make madra.parentdir
+    success, errstr, errcode = lfs.mkdir ( path )
+    if success == true then
+        return EXIT_SUCCESS
+    elseif errcode == 2 then
+        madra.mkdir ( madra.parentdir ( path ) )
+    end
+end
+mode.mkdir = true
+action.mkdir = madra.mkdir
 
  --[[ Run commands directly, not read by any shell ]]--
-function madra.run (binary, ...)
-    binstring = tostring(binary)
-    args = {...}
+--function madra.run (binary, ...)
+function madra.run ( obstring )
+    binstring, rest = madra.firstoff( obstring )
+
+    --binstring = tostring(binary)
+    --args = {...}
 
     io.write("  ***  Executing this file:  ***\n".. binstring .."\n\n")
 
     if args ~= nil then
+        args = strsplit( obstring )
         io.write("  with these " .. #args .. " arguments:\n")
         for k,v in pairs(args) do
             print(k,v)
@@ -117,8 +156,14 @@ function madra.run (binary, ...)
     end
     posix.exec (binstring, args)
 end
+mode.run = true
 action.run = madra.run
 token["!"] = action.run
+
+ --[[ Find out what's going on right now ]]--
+--function madra.status ( path )
+
+  --  io.write(" == MADRA STATUS ==\n")
 
  --[[ Run commands through the shell ]]--
 function madra.shellexec (command)
@@ -126,9 +171,9 @@ function madra.shellexec (command)
     io.write("  ***  Executing this command in ".. global.SHELL ..":  ***\n" .. cmdstring ..  "\n\n")
     os.execute(cmdstring)
 end
+mode.shell = true
 action.shell = madra.shellexec
 token["$"] = action.shell
-
 
  --[[ Search using any search term -based "engine" ]]--
 function madra.search (enginestring, ...)
@@ -140,21 +185,35 @@ function madra.search (enginestring, ...)
         return EXIT_FAILURE
     end
 end
+mode.search = true
 action.search = madra.search
 token["?"] = action.search
 
  --[[ Find files and objects among your data ]]--
-function madra.find (path, ...)
-    terms = {...}
-    cmdstring = madra.gathertostring (BINfind .. " " .. path .. " " .. terms)
-    os.execute(cmdstring)
+function madra.view ( obstring )
+    obtype, obprops = understand(obstring)
+    if props.exists == true then
+        io.write(obstring)
+    end
 end
-action.find = madra.find
-token["/"] = action.find
+mode.view = false
+action.view = madra.view
+token["@"] = action.view
+
 
                                ----------------------
                             --[[  HELPER FUNCTIONS  ]]--
                                ----------------------
+  
+   --[[  BASIC MADRA FUNCTIONS  ]]--
+ --[[ Initialize the system (for this user and program) ]]--
+function madra.init ( system )
+    if type(system) ~= string or system == "" or system == "madra" then
+         io.write("madra")
+    end
+end
+
+    
 
    --[[  STRING MANIPULATION  ]]--
  --[[ Pop off the first word; return it and the rest ]]--
@@ -179,7 +238,7 @@ function madra.strsplit ( string )
     return stringlist
 end
 
- --[[ Gather all elements of a table, in order, into a string ]]--
+ --[[ Gather all elements of a list in order into a string, separating with spaces ]]--
 function madra.gathertostring (object)
     typeo = type(object)                -- what type is the object
     if typeo == "string" then           -- string? then we're done
@@ -335,6 +394,11 @@ function madra.getuid()
     return posix.getuid()
 end
     
+ --[[ Find out the current username ]]--
+function madra.getuser()
+    UID = posix.getuid()
+end
+    
 
    --[[  MADRA ACTIONS  ]]--
  --[[ Reload madra / this file ]]--
@@ -356,6 +420,5 @@ end
                ----------
 
   --[[  DEFINITIONS, FILES, CHOICES  ]]--
-HOSTNAME = madra.gethostname()
 
 return madra

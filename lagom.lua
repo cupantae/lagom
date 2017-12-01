@@ -19,11 +19,12 @@ local posix = require ("posix")
                        -----------------------------
 env = {}
  -- The initial values are unlikely choices, so that they'll show up in debugging.
-env.HOME       = "/"
-env.HOSTNAME   = "unlikelyhostname"
-env.UID        = "9999"
-env.USER       = "whocares"
-env.WORKINGDIR = "/"
+env.HOME        = "/"
+env.HOSTNAME    = "unlikelyhostname"
+env.MODE        = ""
+env.UID         = "9999"
+env.USER        = "whocares"
+env.WORKINGDIR  = "/"
 
                                 ----------
                              --[[  MAIN  ]]--
@@ -50,7 +51,7 @@ function promptloop ()
                    .. Green .. env.HOSTNAME
                    .. Blue .. " [" .. env.WORKINGDIR .. "] "
                    .. BWhite .. env.TIME  .. "\n"
-    prompt_whole = infostr .. Colour_Off .. lagompromptfmt
+    prompt_whole = infostr .. Colour_Off .. env.MODE .. lagompromptfmt
     io.write(prompt_whole)
 
     cmdstring = io.read()
@@ -72,27 +73,46 @@ function newparser ( cmdstring )
  --returns:
     actfunc = nil
   --rest = "string"
-    if cmdstring == nil then
-        return "quit"
-    elseif ( type(cmdstring) == "string" ) then
-        leader, rest = madra.firstoff ( cmdstring )
-        if leader == nil then
-            return nil
+  
+    if cmdstring == nil then            --> only happens on Ctrl-D
+        if env.MODE == "" then
+            return "quit"
         else
-            initial = leader:sub(1,1)               -- If the first letter...
-            if token[initial] ~= nil then               --  ..is a "token" like !,?,$,#
-                rest = leader:sub(2) .. rest            --   ..add the first word on..
-                return token[initial], rest             --    ..and execute token's action.
-            elseif action[leader] ~= nil then
-                return action[leader], rest
-            else
-                ltype, lprops = madra.understand( leader )
-                if  lprops.exists == true then
-                    return action.view, rest
+            env.MODE = ""
+            actfunc = nil
+        end
+    elseif ( type(cmdstring) == "string" ) then
+        if env.MODE == "" then
+            leader, rest = madra.firstoff ( cmdstring )
+            if leader == nil then           --> no command given
+                return nil
+            else           --> have been given something.
+                initial = leader:sub(1,1)               --> If the first letter...
+                if token[initial] ~= nil then           -- ..is a "token" like !,?,$,#
+                    rest = leader:sub(2) .. rest        --  ..add the first word to the rest
+                    actfunc = token[initial]
+                elseif action[leader] ~= nil then       --> if the leader is an action
+                    actfunc = action[leader]
+                else
+                    ltype, lprops = madra.understand( leader )
+                    if  lprops.exists == true then
+                        return action.view, rest
+                    end
                 end
+                if actfunc ~= nil and (rest == nil or rest == "") and mode[leader] == true then
+                   env.MODE = leader
+                   actfunc = nil
+                end
+            end
+        else
+            rest = madra.gathertostring( madra.strsplit(cmdstring) )
+            if cmdstring ~= "" then
+                actfunc = action[env.MODE]
             end
         end
     end
+  --  io.write( tostring(actfunc) .. tostring(rest) )    -->   debug
+    return actfunc, rest             --    ..and execute token's action.
 end
 
  --[[ Turning the input into a table of strings, running the result. ]]--
